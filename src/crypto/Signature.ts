@@ -154,23 +154,27 @@ export class WalletSigner implements KeySigner {
     return ecdsaSignerKey(digest, signature)
   }
 
-  async signKey(key: UnsignedPublicKey): Promise<SignedPublicKey> {
-    const keyBytes = key.toBytes()
-    const sigString = await this.wallet.signMessage(
-      WalletSigner.identitySigRequestText(keyBytes)
-    )
+  static stringToSignature(sigString: string): Signature {
     const eSig = utils.splitSignature(sigString)
     const r = hexToBytes(eSig.r)
     const s = hexToBytes(eSig.s)
     const sigBytes = new Uint8Array(64)
     sigBytes.set(r)
     sigBytes.set(s, r.length)
-    const signature = new Signature({
+    return new Signature({
       walletEcdsaCompact: {
         bytes: sigBytes,
         recovery: eSig.recoveryParam,
       },
     })
+  }
+
+  async signKey(key: UnsignedPublicKey): Promise<SignedPublicKey> {
+    const keyBytes = key.toBytes()
+    const sigString = await this.wallet.signMessage(
+      WalletSigner.identitySigRequestText(keyBytes)
+    )
+    const signature = WalletSigner.stringToSignature(sigString)
     return new SignedPublicKey({ keyBytes, signature })
   }
 }

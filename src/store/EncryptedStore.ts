@@ -1,11 +1,13 @@
 import { Store } from './Store'
-import { Signer } from 'ethers'
+import { utils, Signer } from 'ethers'
 import {
   PrivateKeyBundleV1,
   decodePrivateKeyBundle,
   decrypt,
   encrypt,
+  WalletSigner,
 } from '../crypto'
+import { ecdsaSignerKey } from '../crypto/Signature'
 import { KeyStore } from './KeyStore'
 import { Authenticator } from '../authn'
 import { bytesToHex, getRandomValues, hexToBytes } from '../crypto/utils'
@@ -73,9 +75,18 @@ export default class EncryptedKeyStore implements KeyStore {
     // serialize the contents
     const bytes = bundle.encode()
     const wPreKey = getRandomValues(new Uint8Array(32))
-    const secret = hexToBytes(
-      await wallet.signMessage(storageSigRequestText(wPreKey))
-    )
+    const msg = storageSigRequestText(wPreKey)
+    const sigString = await wallet.signMessage(msg)
+    const sig = WalletSigner.stringToSignature(sigString).walletEcdsaCompact
+    if (!sig) {
+      throw new Error('invalid storage signature')
+    }
+    const digest = hexToBytes(utils.hashMessage(msg))
+    const key = ecdsaSignerKey(digest, sig)
+    if (!key || key.getEthereumAddress() !== (await wallet.getAddress())) {
+      throw new Error('invalid storage signature')
+    }
+    const secret = hexToBytes(sigString)
     const ciphertext = await encrypt(bytes, secret)
     return proto.EncryptedPrivateKeyBundle.encode({
       v1: {
