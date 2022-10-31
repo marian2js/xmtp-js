@@ -148,9 +148,17 @@ export class WalletSigner implements KeySigner {
     key: SignedPublicKey,
     signature: ECDSACompactWithRecovery
   ): UnsignedPublicKey | undefined {
-    const digest = hexToBytes(
-      utils.hashMessage(this.identitySigRequestText(key.bytesToSign()))
+    return this.signerKeyForMessage(
+      this.identitySigRequestText(key.bytesToSign()),
+      signature
     )
+  }
+
+  static signerKeyForMessage(
+    msg: string,
+    signature: ECDSACompactWithRecovery
+  ): UnsignedPublicKey | undefined {
+    const digest = hexToBytes(utils.hashMessage(msg))
     return ecdsaSignerKey(digest, signature)
   }
 

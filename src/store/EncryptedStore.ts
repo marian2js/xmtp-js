@@ -1,5 +1,5 @@
 import { Store } from './Store'
-import { utils, Signer } from 'ethers'
+import { Signer } from 'ethers'
 import {
   PrivateKeyBundleV1,
   decodePrivateKeyBundle,
@@ -7,7 +7,6 @@ import {
   encrypt,
   WalletSigner,
 } from '../crypto'
-import { ecdsaSignerKey } from '../crypto/Signature'
 import { KeyStore } from './KeyStore'
 import { Authenticator } from '../authn'
 import { bytesToHex, getRandomValues, hexToBytes } from '../crypto/utils'
@@ -77,15 +76,21 @@ export default class EncryptedKeyStore implements KeyStore {
     const wPreKey = getRandomValues(new Uint8Array(32))
     const msg = storageSigRequestText(wPreKey)
     const sigString = await wallet.signMessage(msg)
+
+    // validate the signature to make sure what the signer returned is indeed
+    // a wallet signature of wPreKey.
+    // It seems that at least LedgerLive on iOS can return wrong signature
+    // in some circumstances.
     const sig = WalletSigner.stringToSignature(sigString).walletEcdsaCompact
     if (!sig) {
       throw new Error('invalid storage signature')
     }
-    const digest = hexToBytes(utils.hashMessage(msg))
-    const key = ecdsaSignerKey(digest, sig)
+    const key = WalletSigner.signerKeyForMessage(msg, sig)
     if (!key || key.getEthereumAddress() !== (await wallet.getAddress())) {
       throw new Error('invalid storage signature')
     }
+
+    // All checks out, use the signature as secret key.
     const secret = hexToBytes(sigString)
     const ciphertext = await encrypt(bytes, secret)
     return proto.EncryptedPrivateKeyBundle.encode({
