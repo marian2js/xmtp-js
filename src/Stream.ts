@@ -44,6 +44,7 @@ export default class Stream<T> {
     contentTopicUpdater?: ContentTopicUpdater<T>
   ): (env: messageApi.Envelope) => Promise<void> {
     return async (env: messageApi.Envelope) => {
+      console.log('### new message callback!')
       if (!env.message) {
         return
       }
@@ -85,6 +86,7 @@ export default class Stream<T> {
         contentTopics: this.topics,
       },
       async (env: messageApi.Envelope) => {
+        console.log('### envelope received!')
         if (!this.callback) return
         await this?.callback(env)
       }

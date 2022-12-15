@@ -13,8 +13,10 @@ export default class NetworkStore implements Store {
 
   // Returns the first record in a topic if it is present.
   async get(key: string): Promise<Buffer | null> {
+    const topics = [this.buildTopic(key)]
+    console.log('topics: ' + topics)
     for await (const env of this.client.queryIterator(
-      { contentTopics: [this.buildTopic(key)] },
+      { contentTopics: topics },
       {
         pageSize: 10,
         direction: messageApi.SortDirection.SORT_DIRECTION_DESCENDING,

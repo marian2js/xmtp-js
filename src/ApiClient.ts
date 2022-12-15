@@ -1,5 +1,8 @@
 import { messageApi } from '@xmtp/proto'
-import { NotifyStreamEntityArrival } from '@xmtp/proto/ts/dist/types/fetch.pb'
+import {
+  InitReq,
+  NotifyStreamEntityArrival,
+} from '@xmtp/proto/ts/dist/types/fetch.pb'
 import { retry, sleep, toNanoString } from './utils'
 import AuthCache from './authn/AuthCache'
 import { Authenticator } from './authn'
@@ -122,16 +125,18 @@ export default class ApiClient {
   private _query(
     req: messageApi.QueryRequest
   ): ReturnType<typeof MessageApi.Query> {
+    console.log('INITREQ text plain')
+    const reactNativeHeaders = this.headers()
+    reactNativeHeaders.append('Content-Type', 'text/plain; charset=utf-8')
+    const initReq: InitReq = {
+      pathPrefix: this.pathPrefix,
+      // body: JSON.stringify({ reactNative: { textStreaming: true } }),
+      headers: reactNativeHeaders,
+      mode: 'cors',
+    }
     return retry(
       MessageApi.Query,
-      [
-        req,
-        {
-          pathPrefix: this.pathPrefix,
-          mode: 'cors',
-          headers: this.headers(),
-        },
-      ],
+      [req, initReq],
       this.maxRetries,
       RETRY_SLEEP_TIME
     )
@@ -180,25 +185,36 @@ export default class ApiClient {
     let abortController: AbortController
 
     const doSubscribe = () => {
+      console.log('### subscribe started!')
       abortController = new AbortController()
       const startTime = +new Date()
 
-      MessageApi.Subscribe(req, cb, {
+      const reactNativeHeaders = this.headers()
+      // reactNativeHeaders.append('Accept', 'application/json')
+      // reactNativeHeaders.append('Accept-Encoding', 'gzip,deflate')
+      // reactNativeHeaders.append('Access-Control-Allow-Origin', '*')
+      reactNativeHeaders.append('Content-Type', 'text/plain; charset=utf-8')
+      console.log('text plain W RN')
+      const initReq: InitReq = {
         pathPrefix: this.pathPrefix,
-        signal: abortController.signal,
+        // body: JSON.stringify({ reactNative: { textStreaming: true } }),
+        headers: reactNativeHeaders,
         mode: 'cors',
-        headers: this.headers(),
-      }).catch(async (err: GrpcError) => {
-        if (isAbortError(err)) {
-          return
-        }
-        console.info('Stream connection lost. Resubscribing', err)
-        // If connection was initiated less than 1 second ago, sleep for a bit
-        // TODO: exponential backoff + eventually giving up
-        if (+new Date() - startTime < 1000) {
-          await sleep(1000)
-        }
-        doSubscribe()
+        signal: abortController.signal,
+      }
+      MessageApi.Subscribe(req, cb, initReq).catch(async (err: GrpcError) => {
+        console.log('### subscribe error ' + err)
+        throw err
+        // if (isAbortError(err)) {
+        //   return
+        // }
+        // console.info('Stream connection lost. Resubscribing', err)
+        // // If connection was initiated less than 1 second ago, sleep for a bit
+        // // TODO: exponential backoff + eventually giving up
+        // if (+new Date() - startTime < 1000) {
+        //   await sleep(1000)
+        // }
+        // doSubscribe()
       })
     }
     doSubscribe()
@@ -252,7 +268,7 @@ export default class ApiClient {
     { contentTopics, startTime, endTime }: QueryParams,
     { direction, pageSize = 10 }: QueryStreamOptions
   ): AsyncGenerator<messageApi.Envelope[]> {
-    if (!contentTopics || !contentTopics.length) {
+    if (!contentTopics.length) {
       throw new Error('Must specify content topics')
     }
 
