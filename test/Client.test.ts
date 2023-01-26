@@ -136,7 +136,7 @@ describe('canMessageBatch', () => {
     )
     // Now call canMessage with all of the peerAddresses
     const canMessageRegisteredClients = await Client.canMessage(
-      [...registeredClients.map((client) => client.address)],
+      registeredClients.map((client) => client.address),
       {
         env: 'local',
       }
