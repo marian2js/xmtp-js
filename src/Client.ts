@@ -353,6 +353,16 @@ export default class Client {
   }
 
   static async canMessage(
+    peerAddress: string,
+    opts?: Partial<NetworkOptions>
+  ): Promise<boolean>
+
+  static async canMessage(
+    peerAddress: string[],
+    opts?: Partial<NetworkOptions>
+  ): Promise<boolean[]>
+
+  static async canMessage(
     peerAddress: string | string[],
     opts?: Partial<NetworkOptions>
   ): Promise<boolean | boolean[]> {
