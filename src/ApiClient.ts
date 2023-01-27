@@ -56,6 +56,9 @@ export type QueryStreamOptions = Omit<QueryAllOptions, 'limit'> & {
   pageSize?: number
 }
 
+// All of the fields in both QueryParams and QueryStreamOptions
+export type Query = QueryParams & QueryStreamOptions
+
 export type PublishParams = {
   contentTopic: string
   message: Uint8Array
@@ -318,21 +321,7 @@ export default class ApiClient {
   }
 
   // Take a list of queries and execute them in batches. queryOptions can be empty
-  async batchQuery(
-    queries: QueryParams[],
-    queryOptions?: QueryStreamOptions[]
-  ): Promise<messageApi.Envelope[][]> {
-    // Require length of queries and queryOptions to be the same, or queryOptions to be empty
-    if (
-      queryOptions &&
-      queryOptions.length &&
-      queryOptions.length !== queries.length
-    ) {
-      throw new Error(
-        'If queryOptions is specified, it must be the same length as queries'
-      )
-    }
-
+  async batchQuery(queries: Query[]): Promise<messageApi.Envelope[][]> {
     // Group content topics into batches of 50 (implicit server-side limit) and then perform BatchQueries
     const BATCH_SIZE = 50
     // Keep a list of BatchQueryRequests to execute all at once later
@@ -347,18 +336,15 @@ export default class ApiClient {
 
       for (let j = 0; j < queriesInBatch.length; j++) {
         const queryParams = queriesInBatch[j]
-        // If queryOptions is empty, use default options
-        const queryOptionsForQuery = queryOptions
-          ? queryOptions[j]
-          : {
-              direction: SortDirection.SORT_DIRECTION_ASCENDING,
-              pageSize: 10,
-            }
         constructedQueries.push({
           contentTopics: queryParams.contentTopics,
           startTimeNs: toNanoString(queryParams.startTime),
           endTimeNs: toNanoString(queryParams.endTime),
-          pagingInfo: queryOptionsForQuery,
+          pagingInfo: {
+            limit: queryParams.pageSize || 10,
+            direction:
+              queryParams.direction || SortDirection.SORT_DIRECTION_ASCENDING,
+          },
         })
       }
       const batchQueryRequest = {

@@ -630,8 +630,6 @@ async function getUserContactsFromNetwork(
   const topicToEnvelopes = await apiClient.batchQuery(
     userContactTopics.map((topic) => ({
       contentTopics: [topic],
-    })),
-    userContactTopics.map(() => ({
       pageSize: 5,
       direction: SortDirection.SORT_DIRECTION_DESCENDING,
     }))
