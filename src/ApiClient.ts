@@ -317,16 +317,19 @@ export default class ApiClient {
     }
   }
 
-  // Get first pageSize envelopes for a number of different topics, intended to efficiently
-  // use the batch-query API in a targeted manner. Returns a map of topic to message envelopes
+  // Take a list of queries and execute them in batches. queryOptions can be empty
   async batchQuery(
     queries: QueryParams[],
-    queryOptions: QueryStreamOptions[]
+    queryOptions?: QueryStreamOptions[]
   ): Promise<messageApi.Envelope[][]> {
     // Require length of queries and queryOptions to be the same, or queryOptions to be empty
-    if (queryOptions.length && queryOptions.length !== queries.length) {
+    if (
+      queryOptions &&
+      queryOptions.length &&
+      queryOptions.length !== queries.length
+    ) {
       throw new Error(
-        'queryOptions must be empty or the same length as queries'
+        'If queryOptions is specified, it must be the same length as queries'
       )
     }
 
@@ -345,10 +348,12 @@ export default class ApiClient {
       for (let j = 0; j < queriesInBatch.length; j++) {
         const queryParams = queriesInBatch[j]
         // If queryOptions is empty, use default options
-        const queryOptionsForQuery = queryOptions[j] || {
-          direction: SortDirection.SORT_DIRECTION_ASCENDING,
-          pageSize: 10,
-        }
+        const queryOptionsForQuery = queryOptions
+          ? queryOptions[j]
+          : {
+              direction: SortDirection.SORT_DIRECTION_ASCENDING,
+              pageSize: 10,
+            }
         constructedQueries.push({
           contentTopics: queryParams.contentTopics,
           startTimeNs: toNanoString(queryParams.startTime),
