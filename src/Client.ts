@@ -628,15 +628,20 @@ async function getUserContactsFromNetwork(
 ): Promise<(PublicKeyBundle | SignedPublicKeyBundle | undefined)[]> {
   const userContactTopics = peerAddresses.map(buildUserContactTopic)
   const topicToEnvelopes = await apiClient.batchQuery(
-    { contentTopics: userContactTopics },
-    { pageSize: 5, direction: SortDirection.SORT_DIRECTION_DESCENDING }
+    userContactTopics.map((topic) => ({
+      contentTopics: [topic],
+    })),
+    userContactTopics.map(() => ({
+      pageSize: 5,
+      direction: SortDirection.SORT_DIRECTION_DESCENDING,
+    }))
   )
 
   // Transform topicToEnvelopes into a list of PublicKeyBundles or undefined
   // by going through each message and attempting to decode
   return Promise.all(
-    peerAddresses.map(async (address) => {
-      const envelopes = topicToEnvelopes.get(buildUserContactTopic(address))
+    peerAddresses.map(async (address: string, index: number) => {
+      const envelopes = topicToEnvelopes[index]
       if (!envelopes) {
         return undefined
       }
