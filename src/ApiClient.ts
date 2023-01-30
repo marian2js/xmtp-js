@@ -334,8 +334,7 @@ export default class ApiClient {
       // and then calling the BatchQuery API with that list of requests in a BatchQueryRequest
       const constructedQueries: messageApi.QueryRequest[] = []
 
-      for (let j = 0; j < queriesInBatch.length; j++) {
-        const queryParams = queriesInBatch[j]
+      for (const queryParams of queriesInBatch) {
         constructedQueries.push({
           contentTopics: queryParams.contentTopics,
           startTimeNs: toNanoString(queryParams.startTime),
