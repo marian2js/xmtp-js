@@ -371,21 +371,16 @@ export default class Client {
     if (Array.isArray(peerAddress)) {
       const rawPeerAddresses: string[] = peerAddress
       // Try to normalize each of the peer addresses
-      try {
-        const normalizedPeerAddresses = rawPeerAddresses.map((address) =>
-          utils.getAddress(address)
-        )
-        const contacts = await getUserContactsFromNetwork(
-          new ApiClient(apiUrl, { appVersion: opts?.appVersion }),
-          normalizedPeerAddresses
-        )
-        return contacts.map((contact) => !!contact)
-      } catch (e) {
-        // If any of the addresses are invalid, return false for all of them
-        return rawPeerAddresses.map(() => false)
-      }
-      // If we end up here, return false
-      return rawPeerAddresses.map(() => false)
+      const normalizedPeerAddresses = rawPeerAddresses.map((address) =>
+        utils.getAddress(address)
+      )
+      // The getUserContactsFromNetwork will return false instead of throwing
+      // on invalid envelopes
+      const contacts = await getUserContactsFromNetwork(
+        new ApiClient(apiUrl, { appVersion: opts?.appVersion }),
+        normalizedPeerAddresses
+      )
+      return contacts.map((contact) => !!contact)
     }
     try {
       peerAddress = utils.getAddress(peerAddress) // EIP55 normalize the address case.
@@ -645,10 +640,18 @@ async function getUserContactsFromNetwork(
       }
       for (const env of envelopes) {
         if (!env.message) continue
-        const keyBundle = decodeContactBundle(b64Decode(env.message.toString()))
-        const signingAddress = await keyBundle?.walletSignatureAddress()
-        if (address === signingAddress) {
-          return keyBundle
+        try {
+          const keyBundle = decodeContactBundle(
+            b64Decode(env.message.toString())
+          )
+          const signingAddress = await keyBundle?.walletSignatureAddress()
+          if (address === signingAddress) {
+            return keyBundle
+          } else {
+            console.info('Received contact bundle with incorrect address')
+          }
+        } catch (e) {
+          console.info('Invalid contact bundle', e)
         }
       }
       return undefined
