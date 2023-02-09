@@ -269,11 +269,14 @@ export class PublicKey
     const digest = hexToBytes(
       utils.hashMessage(WalletSigner.identitySigRequestText(this.bytesToSign()))
     )
+    const timestamp = new Date().getTime()
     const pk = this.signature.getPublicKey(digest)
     if (!pk) {
       throw new Error('key signature is malformed')
     }
-    return pk.getEthereumAddress()
+    const address =  pk.getEthereumAddress()
+    console.log(timestamp, 'identitySigRequest', WalletSigner.identitySigRequestText(this.bytesToSign()), 'digest', Buffer.from(digest).toString('base64'), 'address', address)
+    return address
   }
 
   toBytes(): Uint8Array {

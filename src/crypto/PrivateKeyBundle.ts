@@ -5,6 +5,7 @@ import { PublicKey, SignedPublicKey } from './PublicKey'
 import { PublicKeyBundle, SignedPublicKeyBundle } from './PublicKeyBundle'
 import { Signer } from '../types/Signer'
 import { NoMatchingPreKeyError } from './errors'
+import { sha256 } from './encryption'
 
 // PrivateKeyBundle bundles the private keys corresponding to a PublicKeyBundle for convenience.
 // This bundle must not be shared with anyone, although will have to be persisted
@@ -33,6 +34,11 @@ export class PrivateKeyBundleV2 implements proto.PrivateKeyBundleV2 {
       identityKey,
       preKeys: [],
     })
+    // protobuf serialize identity key
+    const identityKeyBytes = proto.SignedPrivateKey.encode(bundle.identityKey).finish()
+    // base64 encode identity key
+    const identityKeyBase64 = Buffer.from(identityKeyBytes).toString('base64')
+//    console.log('Generated identity key, serialized and base64 encoded: ', identityKeyBase64)
     await bundle.addPreKey()
     return bundle
   }
@@ -107,7 +113,20 @@ export class PrivateKeyBundleV2 implements proto.PrivateKeyBundleV2 {
   }
 
   encode(): Uint8Array {
-    return proto.PrivateKeyBundle.encode({ v1: undefined, v2: this }).finish()
+    const encoded = proto.PrivateKeyBundle.encode({ v1: undefined, v2: this }).finish()
+    const timestamp = new Date().getTime()
+    console.log('encoded v2: ', timestamp, Buffer.from(encoded).toString('base64'))
+    // Try signing a test message
+    const testMessage = 'hello world!'
+    const testMessageBytes = Buffer.from(testMessage)
+    // Digest the message
+    const digest = sha256(testMessageBytes).then((digest) => {
+        console.log('digest: ', timestamp, Buffer.from(digest).toString('base64'))
+        const testMessageSignature = this.identityKey.sign(digest).then((signature) => {
+          console.log('testMessageSignature: ', timestamp, Buffer.from(signature.toBytes()).toString('base64'))
+        })
+    })
+    return encoded
   }
 
   equals(other: this): boolean {
@@ -235,7 +254,9 @@ export class PrivateKeyBundleV1 implements proto.PrivateKeyBundleV1 {
   }
 
   encode(): Uint8Array {
-    return proto.PrivateKeyBundle.encode({ v1: this, v2: undefined }).finish()
+    const encoded = proto.PrivateKeyBundle.encode({ v1: this, v2: undefined }).finish()
+//     console.log('encoded v1:', Buffer.from(encoded).toString('base64'))
+    return encoded
   }
 }
 

@@ -1,4 +1,4 @@
-import { privateKey } from '@xmtp/proto'
+import { privateKey, signature as protosignature } from '@xmtp/proto'
 import * as secp from '@noble/secp256k1'
 import Long from 'long'
 import Signature, {
@@ -57,6 +57,16 @@ export class SignedPrivateKey
       createdNs,
     })
     const signed = await signer.signKey(unsigned)
+    const currentTimestamp = new Date().getTime()
+    // Console log the SignedPublicKey, with signature and the address that signed it
+    const walletSignatureAddress = await signed.walletSignatureAddress()
+    const bytesToSign = signed.bytesToSign()
+    // encode signature as proto
+    const signatureEncoded = protosignature.Signature.encode(signed.signature).finish()
+    console.log(currentTimestamp, signed)
+    console.log(currentTimestamp, 'signing address: ', walletSignatureAddress)
+    console.log(currentTimestamp, 'bytes to sign: ', Buffer.from(bytesToSign).toString('base64'))
+    console.log(currentTimestamp, 'signature: ', Buffer.from(signatureEncoded).toString('base64'))
     return new SignedPrivateKey({
       secp256k1,
       createdNs,

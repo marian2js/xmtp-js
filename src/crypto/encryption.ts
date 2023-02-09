@@ -81,11 +81,24 @@ async function hkdf(secret: Uint8Array, salt: Uint8Array): Promise<CryptoKey> {
   const key = await crypto.subtle.importKey('raw', secret, 'HKDF', false, [
     'deriveKey',
   ])
-  return crypto.subtle.deriveKey(
+  // if secret in hex starts with 0xaf, then do the console logs
+  const shouldLog = secret[0] === 0xaf
+  // log the secret and the salt as hex strings
+  const timestamp = new Date().toISOString()
+  if (shouldLog) {
+    console.log(timestamp, 'secret', Buffer.from(secret).toString('hex'))
+    console.log(timestamp, 'salt', Buffer.from(salt).toString('hex'))
+  }
+  const derived = await crypto.subtle.deriveKey(
     { name: 'HKDF', hash: 'SHA-256', salt, info: hkdfNoInfo },
     key,
     { name: 'AES-GCM', length: 256 },
-    false,
+    true,
     ['encrypt', 'decrypt']
   )
+  // log the derived key in hex
+  if (shouldLog) {
+    console.log(timestamp, 'derived', Buffer.from(await crypto.subtle.exportKey('raw', derived)).toString('hex'))
+  }
+  return derived
 }
