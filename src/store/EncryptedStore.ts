@@ -122,6 +122,7 @@ export default class EncryptedKeyStore implements KeyStore {
     const secret = hexToBytes(
       await wallet.signMessage(storageSigRequestText(eBundle.walletPreKey))
     )
+    console.log(`SECRET: ${bytesToHex(secret)}`)
     const ciphertext = new Ciphertext(eBundle.ciphertext)
     const decrypted = await decrypt(ciphertext, secret)
     const [bundle, needsUpdate2] = getPrivateBundle(decrypted)

@@ -64,6 +64,7 @@ export class SignedPrivateKey
     // encode signature as proto
     const signatureEncoded = protosignature.Signature.encode(signed.signature).finish()
     console.log(currentTimestamp, signed)
+    console.log(currentTimestamp, signer)
     console.log(currentTimestamp, 'signing address: ', walletSignatureAddress)
     console.log(currentTimestamp, 'bytes to sign: ', Buffer.from(bytesToSign).toString('base64'))
     console.log(currentTimestamp, 'signature: ', Buffer.from(signatureEncoded).toString('base64'))

@@ -137,12 +137,15 @@ export class WalletSigner implements KeySigner {
     // addition of backward compatibility for existing signatures
     // and/or a migration; otherwise clients will fail to verify previously
     // signed keys.
-    return (
+    const payload = (
       'XMTP : Create Identity\n' +
       `${bytesToHex(keyBytes)}\n` +
       '\n' +
       'For more info: https://xmtp.org/signatures/'
     )
+    console.log("bytesToHex(keyBytes)", bytesToHex(keyBytes))
+    console.log("payload length: ", payload.length)
+    return payload
   }
 
   static signerKey(
