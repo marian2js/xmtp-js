@@ -1,3 +1,4 @@
+import Conversations from '../conversations/Conversations'
 import BackupClient, {
   BackupConfiguration,
   BackupType,
@@ -19,7 +20,8 @@ import TopicStoreBackupClient from './TopicStoreBackupClient'
  */
 export async function createBackupClient(
   walletAddress: string,
-  selectBackupProvider: SelectBackupProvider
+  selectBackupProvider: SelectBackupProvider,
+  conversations: Conversations
 ): Promise<BackupClient> {
   const configuration = await fetchOrCreateConfiguration(
     walletAddress,
@@ -29,7 +31,7 @@ export async function createBackupClient(
     case BackupType.none:
       return new NoBackupClient(configuration)
     case BackupType.xmtpTopicStore:
-      return new TopicStoreBackupClient(configuration)
+      return new TopicStoreBackupClient(configuration, conversations)
   }
 }
 

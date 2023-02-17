@@ -148,17 +148,13 @@ export default class Client {
     PublicKeyBundle | SignedPublicKeyBundle
   > // addresses and key bundles that we have witnessed
 
-  private _backupClient: BackupClient
+  private _backupClient!: BackupClient
   private _conversations: Conversations
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _codecs: Map<string, ContentCodec<any>>
   private _maxContentSize: number
 
-  constructor(
-    keys: PrivateKeyBundleV1,
-    apiClient: ApiClient,
-    backupClient: BackupClient
-  ) {
+  constructor(keys: PrivateKeyBundleV1, apiClient: ApiClient) {
     this.contacts = new Set<string>()
     this.knownPublicKeyBundles = new Map<
       string,
@@ -171,7 +167,6 @@ export default class Client {
     this._codecs = new Map()
     this._maxContentSize = MaxContentSize
     this.apiClient = apiClient
-    this._backupClient = backupClient
   }
 
   /**
@@ -199,11 +194,7 @@ export default class Client {
     const apiClient = createApiClientFromOptions(options)
     const keys = await loadOrCreateKeysFromOptions(options, wallet, apiClient)
     apiClient.setAuthenticator(new Authenticator(keys.identityKey))
-    const backupClient = await Client.setupBackupClient(
-      keys.identityKey.publicKey.walletSignatureAddress(),
-      options.env
-    )
-    const client = new Client(keys, apiClient, backupClient)
+    const client = new Client(keys, apiClient)
     await client.init(options)
     return client
   }
@@ -217,8 +208,9 @@ export default class Client {
   }
 
   private static async setupBackupClient(
+    env: keyof typeof ApiUrls,
     walletAddress: string,
-    env: keyof typeof ApiUrls
+    conversations: Conversations
   ): Promise<BackupClient> {
     // Hard-code the provider to use for now
     const selectBackupProvider = async () => {
@@ -226,7 +218,11 @@ export default class Client {
         type: env === 'local' ? BackupType.xmtpTopicStore : BackupType.none,
       })
     }
-    return createBackupClient(walletAddress, selectBackupProvider)
+    return createBackupClient(
+      walletAddress,
+      selectBackupProvider,
+      conversations
+    )
   }
 
   private async init(options: ClientOptions): Promise<void> {
@@ -235,6 +231,11 @@ export default class Client {
     })
     this._maxContentSize = options.maxContentSize
     await this.ensureUserContactPublished(options.publishLegacyContact)
+    this._backupClient = await Client.setupBackupClient(
+      options.env,
+      this.address,
+      this.conversations
+    )
   }
 
   // gracefully shut down the client

@@ -2,7 +2,7 @@ import BackupClient, { BackupType, NoBackupConfiguration } from './BackupClient'
 
 const BACKUP_TYPE = BackupType.none
 export default class NoBackupClient implements BackupClient {
-  private configuration: NoBackupConfiguration
+  private _configuration: NoBackupConfiguration
 
   public static createConfiguration(): NoBackupConfiguration {
     return {
@@ -12,7 +12,7 @@ export default class NoBackupClient implements BackupClient {
   }
 
   constructor(configuration: NoBackupConfiguration) {
-    this.configuration = configuration
+    this._configuration = configuration
   }
 
   public get backupType(): BackupType {
