@@ -51,6 +51,10 @@ export default class TopicStoreBackupClient implements BackupClient {
   }
 
   private async subscribeToNewMessages(): Promise<void> {
+    // What queries do we want to support?
+    // 1. load everything into memory, then query memory
+    // 2. Directly query server
+    // Do (1) for now. Define 'conversationStore' interface that both Conversations and TopicStores implement
     for await (const message of await this._conversations.streamAllMessages()) {
       // if (message.senderAddress === this.configuration_address) {
       //   // This message was sent from me
